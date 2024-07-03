@@ -1,0 +1,216 @@
+template:
+  name: Flag-Pipeline-Demo
+  type: Pipeline
+  projectIdentifier: default_project
+  orgIdentifier: default
+  spec:
+    stages:
+      - stage:
+          name: Start Rollout to 10pct
+          identifier: Start_Rollout_to_10pct
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: start
+                    identifier: start
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: Approve to Start the rollout to 10pct
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - stage:
+          name: Deploy to 10pct
+          identifier: Deploy_to_10pct
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: 10PctRollout
+                    identifier: PctRollout
+                    type: Http
+                    timeout: 10s
+                    spec:
+                      url: https://api.split.io/internal/api/v2/splits/ws/4baf0690-6d25-11e9-8497-12a5cc2af8fe/boxes_harness/environments/4bc2b5a0-6d25-11e9-8497-12a5cc2af8fe
+                      method: PATCH
+                      headers:
+                        - key: Authorization
+                          value: Bearer <+secrets.getValue("splitApiKey")>
+                        - key: Content-Type
+                          value: application/json
+                      inputVariables: []
+                      outputVariables: []
+                      requestBody: |-
+                        [{"op": "replace", "path": "/defaultRule", "value":[
+                           {
+                             "treatment": "current",
+                             "size": 80
+                           },
+                           {
+                            "treatment": "standard",
+                            "size": 10
+                           },
+                            {
+                            "treatment": "premium",
+                            "size": 10
+                           }
+                           ] }]
+                      delegateSelectors:
+                        - kubernetes-delegate
+          tags: {}
+          delegateSelectors:
+            - docker-delegate
+      - stage:
+          name: Approve Before Rollout to 50pct
+          identifier: Approve_Before_Rollout
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approval
+                    identifier: Approval
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: |-
+                        Please Review the metrics for the flag 'boxes_harness'
+
+                        https://app.split.io/org/4ba7daa0-6d25-11e9-8497-12a5cc2af8fe/ws/4baf0690-6d25-11e9-8497-12a5cc2af8fe/splits/dfd86630-37c9-11ef-8cea-a259e18132b6/env/4bc2b5a0-6d25-11e9-8497-12a5cc2af8fe/metrics/results
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - stage:
+          name: Deploy to 50pct
+          identifier: Deploy_to_50pct
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    type: Http
+                    name: 50pct rollout
+                    identifier: pct_rollout
+                    spec:
+                      url: https://api.split.io/internal/api/v2/splits/ws/4baf0690-6d25-11e9-8497-12a5cc2af8fe/boxes_harness/environments/4bc2b5a0-6d25-11e9-8497-12a5cc2af8fe
+                      method: PATCH
+                      headers:
+                        - key: Authorization
+                          value: Bearer <+secrets.getValue("splitApiKey")>
+                        - key: Content-Type
+                          value: application/json
+                      inputVariables: []
+                      outputVariables: []
+                      requestBody: |-
+                        [{"op": "replace", "path": "/defaultRule", "value":[
+                           {
+                             "treatment": "current",
+                             "size": 50
+                           },
+                           {
+                            "treatment": "standard",
+                            "size": 25
+                           },
+                            {
+                            "treatment": "premium",
+                            "size": 25
+                           }
+                           ] }]
+                    timeout: 10s
+          tags: {}
+      - stage:
+          name: Approve to move all off current
+          identifier: Approve_to_move_all_off_current
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approve 100pct
+                    identifier: Approve_100pct
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: |-
+                        Please Review the metrics for the flag 'boxes_harness'
+
+                        https://app.split.io/org/4ba7daa0-6d25-11e9-8497-12a5cc2af8fe/ws/4baf0690-6d25-11e9-8497-12a5cc2af8fe/splits/dfd86630-37c9-11ef-8cea-a259e18132b6/env/4bc2b5a0-6d25-11e9-8497-12a5cc2af8fe/metrics/results
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - stage:
+          name: rollout all to standard and premium
+          identifier: rollout_all_to_standard_and_premium
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    type: Http
+                    name: 100pct rollout
+                    identifier: hundredpct_rollout
+                    spec:
+                      url: https://api.split.io/internal/api/v2/splits/ws/4baf0690-6d25-11e9-8497-12a5cc2af8fe/boxes_harness/environments/4bc2b5a0-6d25-11e9-8497-12a5cc2af8fe
+                      method: PATCH
+                      headers:
+                        - key: Authorization
+                          value: Bearer <+secrets.getValue("splitApiKey")>
+                        - key: Content-Type
+                          value: application/json
+                      inputVariables: []
+                      outputVariables: []
+                      requestBody: |-
+                        [{"op": "replace", "path": "/defaultRule", "value":[
+                            {
+                            "treatment": "current",
+                            "size": 0
+                           },
+                           {
+                            "treatment": "standard",
+                            "size": 50
+                           },
+                            {
+                            "treatment": "premium",
+                            "size": 50
+                           }
+                           ] }]
+                    timeout: 10s
+              rollbackSteps: []
+            serviceDependencies: []
+          tags: {}
+    properties:
+      ci:
+        codebase:
+          connectorRef: account.Github_OAuth_1719363520503
+          repoName: boxes-pipeline
+          build: <+input>
+  identifier: FlagPipelineDemo
+  versionLabel: V1
