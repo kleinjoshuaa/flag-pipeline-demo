@@ -7,7 +7,7 @@ template:
     type: Http
     timeout: 10s
     spec:
-      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.Workspace>/environments/<+pipeline.variables.Environment>
+      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.featureFlag>/environments/<+pipeline.variables.Environment>
       method: PATCH
       headers:
         - key: Authorization
