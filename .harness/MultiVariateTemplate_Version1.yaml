@@ -14,30 +14,21 @@ template:
           value: Bearer <+secrets.getValue("splitApiKey")>
         - key: Content-Type
           value: application/json
-      inputVariables:
-        - name: currentPct
-          value: "90"
-          type: String
-        - name: standardPct
-          value: "5"
-          type: String
-        - name: premiumPct
-          value: "5"
-          type: String
+      inputVariables: []
       outputVariables: []
       requestBody: |-
         [{"op": "replace", "path": "/defaultRule", "value":[
            {
              "treatment": "current",
-             "size": <+spec.inputVariables.currentPct>
+             "size": <+stage.variables.currentPct>
            },
            {
             "treatment": "standard",
-            "size": <+spec.inputVariables.standardPct>
+            "size": <+stage.variables.standardPct>
            },
             {
             "treatment": "premium",
-            "size": <+spec.inputVariables.premiumPct>
+            "size": <+stage.variables.premiumPct>
            }
            ] }]
       delegateSelectors:
