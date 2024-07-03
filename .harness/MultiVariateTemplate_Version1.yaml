@@ -1,0 +1,46 @@
+template:
+  name: MultiVariate-Template
+  type: Step
+  projectIdentifier: default_project
+  orgIdentifier: default
+  spec:
+    type: Http
+    timeout: 10s
+    spec:
+      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.Workspace>/environments/<+pipeline.variables.Environment>
+      method: PATCH
+      headers:
+        - key: Authorization
+          value: Bearer <+secrets.getValue("splitApiKey")>
+        - key: Content-Type
+          value: application/json
+      inputVariables:
+        - name: currentPct
+          value: "90"
+          type: String
+        - name: standardPct
+          value: "5"
+          type: String
+        - name: premiumPct
+          value: "5"
+          type: String
+      outputVariables: []
+      requestBody: |-
+        [{"op": "replace", "path": "/defaultRule", "value":[
+           {
+             "treatment": "current",
+             "size": <+spec.inputVariables.currentPct>
+           },
+           {
+            "treatment": "standard",
+            "size": <+spec.inputVariables.standardPct>
+           },
+            {
+            "treatment": "premium",
+            "size": <+spec.inputVariables.premiumPct>
+           }
+           ] }]
+      delegateSelectors:
+        - kubernetes-delegate
+  identifier: MultiVariateTemplate
+  versionLabel: Version1
