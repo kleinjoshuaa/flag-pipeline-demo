@@ -9,12 +9,15 @@ template:
       headers: []
       inputVariables:
         - name: Content-Type
-          value: application/json
+          value: "\"application/json\""
           type: String
         - name: Authorization
           value: Bearer <+secrets.getValue("splitApiKey")>
           type: String
-      outputVariables: []
+      outputVariables:
+        - name: flagName
+          value: <+json.select("id", httpResponseBody)>
+          type: String
       requestBody: |-
         {
             "name": "<+pipeline.variables.flagName>",
