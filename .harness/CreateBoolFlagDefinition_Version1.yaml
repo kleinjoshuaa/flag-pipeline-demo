@@ -1,0 +1,40 @@
+template:
+  name: CreateBoolFlagDefinition
+  type: Step
+  spec:
+    type: Http
+    spec:
+      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.flagName>/environments/<+pipeline.variables.Environment>
+      method: POST
+      headers:
+        - key: Content-type
+          value: application/json
+        - key: Authorization
+          value: Bearer <+secrets.getValue("splitApiKey")>
+      inputVariables: []
+      outputVariables: []
+      requestBody: |-
+        {"treatments": [
+                {
+                    "name": "current",
+                    "description": ""
+                    
+                },
+                {
+                    "name": "standard",
+                    "description": ""
+              }
+            ],
+            "defaultTreatment": "current",
+            "baselineTreatment": "current",
+            "trafficAllocation": 100,
+            "rules": [],
+            "defaultRule": [
+                {
+                    "treatment": "current",
+                    "size": 100
+                }
+            ]}
+    timeout: 10s
+  identifier: CreateBoolFlagDefinition
+  versionLabel: Version1
