@@ -21,7 +21,7 @@ template:
       requestBody: |-
         {
             "name": "<+pipeline.variables.flagName>",
-            "description": "<+pipeline.variables.flagName>",
+            "description": "<+pipeline.variables.flagName>"
         }
     timeout: 10s
   identifier: CreateMetaFlag
