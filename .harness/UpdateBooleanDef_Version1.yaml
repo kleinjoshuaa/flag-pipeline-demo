@@ -24,6 +24,7 @@ template:
                     "size": <+stage.variables.standardPct>
                    }
                    ] }]
+      assertion: <+httpResponseCode>==200
     timeout: 10s
   identifier: UpdateBooleanDef
   versionLabel: Version1
