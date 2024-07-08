@@ -1,5 +1,5 @@
 template:
-  name: MultiVariate-Template
+  name: Update-Multivariate-Flag-Def
   type: Step
   projectIdentifier: default_project
   orgIdentifier: default
@@ -35,3 +35,4 @@ template:
         - kubernetes-delegate
   identifier: MultiVariateTemplate
   versionLabel: Version1
+  tags: {}
