@@ -13,6 +13,7 @@ template:
           value: Bearer <+secrets.getValue("splitApiKey")>
       inputVariables: []
       outputVariables: []
+      assertion: <+httpResponseCode>==200
     timeout: 10s
   identifier: DeleteFlagDefinition
   versionLabel: Version1
