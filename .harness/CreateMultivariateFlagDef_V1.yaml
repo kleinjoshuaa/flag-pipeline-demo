@@ -38,6 +38,7 @@ template:
                             "size": 100
                         }
                     ]}
+      assertion: <+httpResponseCode>==200
     timeout: 10s
   identifier: CreateMultivariateDef
   versionLabel: Version1
