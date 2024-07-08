@@ -33,5 +33,6 @@ template:
            ] }]
       delegateSelectors:
         - kubernetes-delegate
+      assertion: <+httpResponseCode>==200
   identifier: MultiVariateTemplate
   versionLabel: Version2
