@@ -1,0 +1,29 @@
+template:
+  name: UpdateBooleanDef
+  type: Step
+  spec:
+    type: Http
+    spec:
+      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.flagName>/environments/<+pipeline.variables.Environment>
+      method: PATCH
+      headers:
+        - key: Content-type
+          value: application/json
+        - key: Authorization
+          value: Bearer <+secrets.getValue("splitApiKey")>
+      inputVariables: []
+      outputVariables: []
+      requestBody: |-
+        [{"op": "replace", "path": "/defaultRule", "value":[
+                   {
+                     "treatment": "current",
+                     "size": <+stage.variables.currentPct>
+                   },
+                   {
+                    "treatment": "standard",
+                    "size": <+stage.variables.standardPct>
+                   }
+                   ] }]
+    timeout: 10s
+  identifier: UpdateBooleanDef
+  versionLabel: Version1
