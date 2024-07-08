@@ -1,0 +1,434 @@
+template:
+  name: Flag-Deploy-Pipeline
+  type: Pipeline
+  projectIdentifier: default_project
+  orgIdentifier: default
+  spec:
+    stages:
+      - stage:
+          name: Create Meta Flag
+          identifier: Create_Meta_Flag
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Create Meta Flag
+                    identifier: Create_Meta_Flag
+                    template:
+                      templateRef: account.CreateMetaFlag
+                      versionLabel: Version1
+          tags: {}
+      - parallel:
+          - stage:
+              name: Create Multivariate Flag
+              identifier: Create_Multivariate_Flag
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: Create Multivariate Flag Def
+                        identifier: Create_Multivariate_Flag_Def
+                        template:
+                          templateRef: account.CreateMultivariateDef
+                          versionLabel: Version1
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: Create boolean flag
+              identifier: Create_Flag
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: CreateBoolFlagDef
+                        identifier: CreateBoolFlagDef
+                        template:
+                          templateRef: account.CreateBoolFlagDefinition
+                          versionLabel: Version1
+                          gitBranch: main
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+      - stage:
+          name: Start Rollout to 10pct
+          identifier: Start_Rollout_to_10pct
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: start
+                    identifier: start
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: Approve to Start the rollout to 10pct for <+pipeline.variables.flagName>. Review the flag definition to confirm rollout approach
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - parallel:
+          - stage:
+              name: Deploy to 10pct - multivariate
+              identifier: Deploy_to_10pct
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: 10PctRollout
+                        identifier: PctRollout
+                        template:
+                          templateRef: MultiVariateTemplate
+                          versionLabel: Version1
+                          gitBranch: main
+              tags: {}
+              delegateSelectors:
+                - docker-delegate
+              variables:
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 90
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 5
+                - name: premiumPct
+                  type: String
+                  description: ""
+                  required: true
+                  value: "5"
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: Deploy to 10pct - boolean
+              identifier: Deploy_to_10pct_boolean
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: Update-Boolean
+                        identifier: UpdateBoolean
+                        template:
+                          templateRef: account.UpdateBooleanDef
+                          versionLabel: Version1
+                          gitBranch: main
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+              variables:
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 90
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 10
+      - stage:
+          name: Approve Before Rollout to 50pct
+          identifier: Approve_Before_Rollout
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approval
+                    identifier: Approval
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: |
+                        Please Review the metrics for the flag  <+pipeline.variables.flagName> to confirm rollout to 50%
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - parallel:
+          - stage:
+              name: Deploy to 50pct - multivariate
+              identifier: Deploy_to_50pct
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: DeployTo50Pct
+                        identifier: DeployTo50Pct
+                        template:
+                          templateRef: MultiVariateTemplate
+                          versionLabel: Version1
+                          gitBranch: main
+              tags: {}
+              variables:
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 25
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+                - name: premiumPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 25
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: Deploy to 50pct - boolean
+              identifier: Deploy_to_50pct_boolean
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: update boolean definition
+                        identifier: update_boolean_definition
+                        template:
+                          templateRef: account.UpdateBooleanDef
+                          versionLabel: Version1
+              tags: {}
+              variables:
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+      - stage:
+          name: Approve to move all off current
+          identifier: Approve_to_move_all_off_current
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approve 100pct
+                    identifier: Approve_100pct
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: |
+                        Please Review the metrics for the flag  <+pipeline.variables.flagName> to confirm rollout to 100%
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - parallel:
+          - stage:
+              name: rollout all to standard and premium
+              identifier: rollout_all_to_standard_and_premium
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: 100pct rollout
+                        identifier: pct_rollout
+                        template:
+                          templateRef: MultiVariateTemplate
+                          versionLabel: Version1
+                          gitBranch: main
+                  rollbackSteps: []
+                serviceDependencies: []
+              tags: {}
+              variables:
+                - name: premiumPct
+                  type: Number
+                  description: ""
+                  required: false
+                  value: 50
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 0
+                - name: standardPct
+                  type: String
+                  description: ""
+                  required: true
+                  value: "50"
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: rollout 100pct - boolean
+              identifier: rollout_100pct_boolean
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: update boolean def to 100 on
+                        identifier: update_boolean_def_to_100_on
+                        template:
+                          templateRef: account.UpdateBooleanDef
+                          versionLabel: Version1
+                          gitBranch: main
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+              variables:
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 100
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 0
+      - stage:
+          name: approve to cleanup
+          identifier: approve_to_cleanup
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approve Cleanup
+                    identifier: Approve_Cleanup
+                    type: HarnessApproval
+                    timeout: 8w 4d
+                    spec:
+                      approvalMessage: |
+                        Please Review the metrics for the flag  <+pipeline.variables.flagName> and confirm that the flag is removed from code and ready for cleanup
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - stage:
+          name: Flag and Definition Cleanup
+          identifier: ResetAtEnd
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Delete Flag Definition
+                    identifier: Delete_Flag_Definition
+                    template:
+                      templateRef: MultiVariateTemplate
+                      versionLabel: Version1
+                      gitBranch: main
+                - step:
+                    name: Delete Meta Flag at workspace level
+                    identifier: Delete_Meta_Flag_at_workspace_level
+                    template:
+                      templateRef: account.DeleteMetaFlag
+                      versionLabel: Version2
+                      gitBranch: main
+          tags: {}
+          when:
+            pipelineStatus: Success
+          variables:
+            - name: currentPct
+              type: Number
+              description: ""
+              required: true
+              value: 100
+            - name: standardPct
+              type: String
+              description: ""
+              required: true
+              value: "0"
+            - name: premiumPct
+              type: Number
+              description: ""
+              required: false
+              value: 0
+    variables:
+      - name: Workspace
+        type: String
+        description: ""
+        required: true
+        value: 4baf0690-6d25-11e9-8497-12a5cc2af8fe
+      - name: Environment
+        type: String
+        description: ""
+        required: true
+        value: 4bc2b5a0-6d25-11e9-8497-12a5cc2af8fe
+      - name: flagName
+        type: String
+        description: Name of Feature Flag to run pipeline on
+        required: true
+        value: <+input>.regex(^[a-zA-Z][a-zA-Z0-9_]{0,254}$)
+      - name: DeployStyle
+        type: String
+        description: Deployment Style
+        required: true
+        value: <+input>.allowedValues(multivariate,boolean)
+      - name: trafficType
+        type: String
+        description: Traffic Type of Feature Flag
+        required: true
+        value: user
+      - name: Organization
+        type: String
+        description: Split Organization
+        required: true
+        value: 4ba7daa0-6d25-11e9-8497-12a5cc2af8fe
+  identifier: FlagDeployPipeline
+  versionLabel: Version1
