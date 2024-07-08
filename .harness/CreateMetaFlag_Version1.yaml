@@ -14,7 +14,10 @@ template:
         - name: Authorization
           value: Bearer <+secrets.getValue("splitApiKey")>
           type: String
-      outputVariables: []
+      outputVariables:
+        - name: flagId
+          value: <+json.select("id", httpResponseBody)>
+          type: String
       requestBody: |-
         {
             "name": "<+pipeline.variables.flagName>",
