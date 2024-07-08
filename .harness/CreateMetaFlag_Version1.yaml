@@ -9,7 +9,7 @@ template:
       headers: []
       inputVariables:
         - name: Content-Type
-          value: "\"application/json\""
+          value: application/json
           type: String
         - name: Authorization
           value: Bearer <+secrets.getValue("splitApiKey")>
@@ -18,11 +18,7 @@ template:
         - name: flagName
           value: <+json.select("id", httpResponseBody)>
           type: String
-      requestBody: |-
-        {
-            "name": "<+pipeline.variables.flagName>",
-            "description": "<+pipeline.variables.flagName>"
-        }
+      requestBody: "{\"name\": \"<+pipeline.variables.flagName>\",\"description\": \"<+pipeline.variables.flagName>\"}"
     timeout: 10s
   identifier: CreateMetaFlag
   versionLabel: Version1
