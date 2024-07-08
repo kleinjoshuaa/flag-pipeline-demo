@@ -1,0 +1,14 @@
+template:
+  name: DeleteMetaFlag
+  type: Step
+  spec:
+    type: Http
+    spec:
+      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.flagName>
+      method: DELETE
+      headers: []
+      inputVariables: []
+      outputVariables: []
+    timeout: 10s
+  identifier: DeleteMetaFlag
+  versionLabel: Version1
