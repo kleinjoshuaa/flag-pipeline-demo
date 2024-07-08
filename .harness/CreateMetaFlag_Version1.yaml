@@ -8,7 +8,7 @@ template:
       method: POST
       headers: []
       inputVariables:
-        - name: Content-type
+        - name: Content-Type
           value: application/json
           type: String
         - name: Authorization
