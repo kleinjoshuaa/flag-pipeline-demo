@@ -7,7 +7,7 @@ template:
       url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.flagName>
       method: DELETE
       headers:
-        - key: Content-type
+        - key: Content-Type
           value: application/json
         - key: Authorization
           value: Bearer <+secrets.getValue("splitApiKey")>
