@@ -19,6 +19,7 @@ template:
           value: <+json.select("id", httpResponseBody)>
           type: String
       requestBody: "{\"name\": \"<+pipeline.variables.flagName>\",\"description\": \"<+pipeline.variables.flagName>\"}"
+      assertion: <+pipeline.stages.Create_Meta_Flag.spec.execution.steps.Create_Meta_Flag.output.httpResponseCode>==200
     timeout: 10s
   identifier: CreateMetaFlag
   versionLabel: Version1
