@@ -13,13 +13,13 @@ template:
           value: Bearer <+secrets.getValue("splitApiKey")>
       inputVariables:
         - name: workspace
-          value: <+pipeline.variables.Workspace>
+          value: <+input>
           type: String
         - name: flagName
-          value: <+pipeline.variables.flagName>
+          value: <+input>
           type: String
         - name: environment
-          value: <+pipeline.variables.Environment>
+          value: <+input>
           type: String
       outputVariables: []
       assertion: <+httpResponseCode>==200
