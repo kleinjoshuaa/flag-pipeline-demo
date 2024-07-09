@@ -1,0 +1,810 @@
+template:
+  name: Full Flag Lifecycle Pipeline
+  type: Pipeline
+  projectIdentifier: default_project
+  orgIdentifier: default
+  spec:
+    stages:
+      - stage:
+          name: Create Meta Flag
+          identifier: Create_Meta_Flag
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Create Meta Flag
+                    identifier: Create_Meta_Flag
+                    template:
+                      templateRef: account.CreateMetaFlag
+                      versionLabel: Version3
+                      gitBranch: main
+                      templateInputs:
+                        type: Http
+                        spec:
+                          inputVariables:
+                            - name: workspace
+                              type: String
+                              value: <+pipeline.variables.Workspace>
+                            - name: trafficType
+                              type: String
+                              value: <+pipeline.variables.trafficType>
+                            - name: flagName
+                              type: String
+                              value: <+pipeline.variables.flagName>
+                            - name: flagDesc
+                              type: String
+                              value: <+pipeline.variables.flagName>
+          tags: {}
+      - parallel:
+          - stage:
+              name: Create Multivariate Flag
+              identifier: Create_Multivariate_Flag
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: Create Multivariate Flag Def
+                        identifier: Create_Multivariate_Flag_Def
+                        template:
+                          templateRef: account.CreateMultivariateDef
+                          versionLabel: Version3
+                          gitBranch: main
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: variant1
+                                  type: String
+                                  value: <+pipeline.variables.variant1>
+                                - name: variant2
+                                  type: String
+                                  value: <+pipeline.variables.variant2>
+                                - name: variant3
+                                  type: String
+                                  value: <+pipeline.variables.variant3>
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: Create boolean flag
+              identifier: Create_Flag
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: CreateBoolFlagDef
+                        identifier: CreateBoolFlagDef
+                        template:
+                          templateRef: account.CreateBoolFlagDefinition
+                          versionLabel: Version1
+                          gitBranch: main
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: off_variant
+                                  type: String
+                                  value: <+pipeline.variables.off_variant>
+                                - name: on_variant
+                                  type: String
+                                  value: <+pipeline.variables.on_variant>
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+      - stage:
+          name: Approve Rollout to QA Team
+          identifier: Approve_Rollout_to_QA_Team
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: QA Team Approval
+                    identifier: QA_Team_Approval
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: Approve to Start the rollout to the QA team for <+pipeline.variables.flagName>.
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+                      callbackId: ""
+          tags: {}
+      - parallel:
+          - stage:
+              name: Deploy to QA - Multivariate
+              identifier: Deploy_to_QA_Multivariate
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: Add QA Boxes
+                        identifier: Add_QA_Boxes
+                        template:
+                          templateRef: account.AddTargetingRuleMultivariate
+                          versionLabel: Version1
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: segmentName
+                                  type: String
+                                  value: qa_boxes
+                                - name: variant2
+                                  type: String
+                                  value: <+pipeline.variables.variant2>
+                                - name: variant3
+                                  type: String
+                                  value: <+pipeline.variables.variant3>
+                                - name: variant2Pct
+                                  type: String
+                                  value: "50"
+                                - name: variant3Pct
+                                  type: String
+                                  value: "50"
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: Deploy to QA - boolean
+              identifier: Deploy_to_QA_boolean
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: Release ON to QA
+                        identifier: Release_ON_to_QA
+                        template:
+                          templateRef: account.Add_Targeting_Rule_for_segment_Boolean
+                          versionLabel: Version1
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: on_variant
+                                  type: String
+                                  value: <+pipeline.variables.on_variant>
+                                - name: segmentName
+                                  type: String
+                                  value: qa_boxes
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+      - stage:
+          name: Start Rollout to 10pct
+          identifier: Start_Rollout_to_10pct
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: start
+                    identifier: start
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: Approve to Start the rollout to 10pct for <+pipeline.variables.flagName>. This flag will be rolled out as <+pipeline.variables.DeployStyle>
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - parallel:
+          - stage:
+              name: Deploy to 10pct - multivariate
+              identifier: Deploy_to_10pct
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: 10PctRollout
+                        identifier: PctRollout
+                        template:
+                          templateRef: MultiVariateTemplate
+                          versionLabel: Version2
+                          gitBranch: main
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: variant1Pct
+                                  type: String
+                                  value: <+stage.variables.currentPct>
+                                - name: variant2Pct
+                                  type: String
+                                  value: <+stage.variables.standardPct>
+                                - name: variant3Pct
+                                  type: String
+                                  value: <+stage.variables.premiumPct>
+                                - name: variant1
+                                  type: String
+                                  value: <+pipeline.variables.variant1>
+                                - name: variant2
+                                  type: String
+                                  value: <+pipeline.variables.variant2>
+                                - name: variant3
+                                  type: String
+                                  value: <+pipeline.variables.variant3>
+              tags: {}
+              delegateSelectors:
+                - docker-delegate
+              variables:
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 90
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 5
+                - name: premiumPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: "5"
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: Deploy to 10pct - boolean
+              identifier: Deploy_to_10pct_boolean
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: Update-Boolean
+                        identifier: UpdateBoolean
+                        template:
+                          templateRef: account.UpdateBooleanDef
+                          versionLabel: Version1
+                          gitBranch: main
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: on_variant
+                                  type: String
+                                  value: <+pipeline.variables.on_variant>
+                                - name: off_variant
+                                  type: String
+                                  value: <+pipeline.variables.off_variant>
+                                - name: on_pct
+                                  type: String
+                                  value: <+stage.variables.standardPct>
+                                - name: off_pct
+                                  type: String
+                                  value: <+stage.variables.currentPct>
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+              variables:
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 90
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 10
+      - stage:
+          name: Approve Before Rollout to 50pct
+          identifier: Approve_Before_Rollout
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approval
+                    identifier: Approval
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: |-
+                        Please Review the metrics for the flag  <+pipeline.variables.flagName> to confirm rollout to 50%
+                          
+                        View Metrics here: 
+                        https://app.split.io/org/<+pipeline.variables.Organization>/ws/<+pipeline.variables.Workspace>/splits/<+pipeline.stages.Create_Meta_Flag.spec.execution.steps.Create_Meta_Flag.output.outputVariables.flagId>/env/<+pipeline.variables.Environment>/metrics/results
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - parallel:
+          - stage:
+              name: Deploy to 50pct - multivariate
+              identifier: Deploy_to_50pct
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: DeployTo50Pct
+                        identifier: DeployTo50Pct
+                        template:
+                          templateRef: MultiVariateTemplate
+                          versionLabel: Version2
+                          gitBranch: main
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: variant1Pct
+                                  type: String
+                                  value: <+stage.variables.currentPct>
+                                - name: variant2Pct
+                                  type: String
+                                  value: <+stage.variables.standardPct>
+                                - name: variant3Pct
+                                  type: String
+                                  value: <+stage.variables.premiumPct>
+                                - name: variant1
+                                  type: String
+                                  value: <+pipeline.variables.variant1>
+                                - name: variant2
+                                  type: String
+                                  value: <+pipeline.variables.variant2>
+                                - name: variant3
+                                  type: String
+                                  value: <+pipeline.variables.variant3>
+              tags: {}
+              variables:
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 25
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+                - name: premiumPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 25
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: Deploy to 50pct - boolean
+              identifier: Deploy_to_50pct_boolean
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: update boolean definition
+                        identifier: update_boolean_definition
+                        template:
+                          templateRef: account.UpdateBooleanDef
+                          versionLabel: Version1
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: on_variant
+                                  type: String
+                                  value: <+pipeline.variables.on_variant>
+                                - name: off_variant
+                                  type: String
+                                  value: <+pipeline.variables.off_variant>
+                                - name: on_pct
+                                  type: String
+                                  value: <+stage.variables.standardPct>
+                                - name: off_pct
+                                  type: String
+                                  value: <+stage.variables.currentPct>
+              tags: {}
+              variables:
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+      - stage:
+          name: Approve to move all off current
+          identifier: Approve_to_move_all_off_current
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approve 100pct
+                    identifier: Approve_100pct
+                    type: HarnessApproval
+                    timeout: 1d
+                    spec:
+                      approvalMessage: |-
+                        Please Review the metrics for the flag  <+pipeline.variables.flagName> to confirm rollout to 100%.   
+                        View Metrics here: 
+                        https://app.split.io/org/<+pipeline.variables.Organization>/ws/<+pipeline.variables.Workspace>/splits/<+pipeline.stages.Create_Meta_Flag.spec.execution.steps.Create_Meta_Flag.output.outputVariables.flagId>/env/<+pipeline.variables.Environment>/metrics/results
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - parallel:
+          - stage:
+              name: rollout all to standard and premium
+              identifier: rollout_all_to_standard_and_premium
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: 100pct rollout
+                        identifier: pct_rollout
+                        template:
+                          templateRef: MultiVariateTemplate
+                          versionLabel: Version2
+                          gitBranch: main
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: variant1Pct
+                                  type: String
+                                  value: <+stage.variables.currentPct>
+                                - name: variant2Pct
+                                  type: String
+                                  value: <+stage.variables.standardPct>
+                                - name: variant3Pct
+                                  type: String
+                                  value: <+stage.variables.premiumPct>
+                                - name: variant1
+                                  type: String
+                                  value: <+pipeline.variables.variant1>
+                                - name: variant2
+                                  type: String
+                                  value: <+pipeline.variables.variant2>
+                                - name: variant3
+                                  type: String
+                                  value: <+pipeline.variables.variant3>
+                  rollbackSteps: []
+                serviceDependencies: []
+              tags: {}
+              variables:
+                - name: premiumPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 0
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 50
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="multivariate"
+          - stage:
+              name: rollout 100pct - boolean
+              identifier: rollout_100pct_boolean
+              description: ""
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        name: update boolean def to 100 on
+                        identifier: update_boolean_def_to_100_on
+                        template:
+                          templateRef: account.UpdateBooleanDef
+                          versionLabel: Version1
+                          gitBranch: main
+                          templateInputs:
+                            type: Http
+                            spec:
+                              inputVariables:
+                                - name: workspace
+                                  type: String
+                                  value: <+pipeline.variables.Workspace>
+                                - name: flagName
+                                  type: String
+                                  value: <+pipeline.variables.flagName>
+                                - name: environment
+                                  type: String
+                                  value: <+pipeline.variables.Environment>
+                                - name: on_variant
+                                  type: String
+                                  value: <+pipeline.variables.on_variant>
+                                - name: off_variant
+                                  type: String
+                                  value: <+pipeline.variables.off_variant>
+                                - name: on_pct
+                                  type: String
+                                  value: <+stage.variables.standardPct>
+                                - name: off_pct
+                                  type: String
+                                  value: <+stage.variables.currentPct>
+              tags: {}
+              when:
+                pipelineStatus: Success
+                condition: <+pipeline.variables.DeployStyle>=="boolean"
+              variables:
+                - name: standardPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 100
+                - name: currentPct
+                  type: Number
+                  description: ""
+                  required: true
+                  value: 0
+      - stage:
+          name: approve to cleanup
+          identifier: approve_to_cleanup
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Approve Cleanup
+                    identifier: Approve_Cleanup
+                    type: HarnessApproval
+                    timeout: 8w 4d
+                    spec:
+                      approvalMessage: |-
+                        Please Review the metrics for the flag  <+pipeline.variables.flagName> and confirm that the flag is removed from code and ready for cleanup. 
+                        View Metrics here: 
+                        https://app.split.io/org/<+pipeline.variables.Organization>/ws/<+pipeline.variables.Workspace>/splits/<+pipeline.stages.Create_Meta_Flag.spec.execution.steps.Create_Meta_Flag.output.outputVariables.flagId>/env/<+pipeline.variables.Environment>/metrics/results
+                      includePipelineExecutionHistory: true
+                      approvers:
+                        minimumCount: 1
+                        disallowPipelineExecutor: false
+                        userGroups:
+                          - account._account_all_users
+                      isAutoRejectEnabled: false
+                      approverInputs: []
+          tags: {}
+      - stage:
+          name: Flag Cleanup
+          identifier: ResetAtEnd
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    name: Delete Flag Definition
+                    identifier: Delete_Flag_Definition
+                    template:
+                      templateRef: account.DeleteFlagDefinition
+                      versionLabel: Version1
+                      gitBranch: main
+                      templateInputs:
+                        type: Http
+                        spec:
+                          inputVariables:
+                            - name: workspace
+                              type: String
+                              value: <+pipeline.variables.Workspace>
+                            - name: flagName
+                              type: String
+                              value: <+pipeline.variables.flagName>
+                            - name: environment
+                              type: String
+                              value: <+pipeline.variables.Environment>
+                - step:
+                    name: Delete Meta Flag at workspace level
+                    identifier: Delete_Meta_Flag_at_workspace_level
+                    template:
+                      templateRef: account.DeleteMetaFlag
+                      versionLabel: Version2
+                      gitBranch: main
+                      templateInputs:
+                        type: Http
+                        spec:
+                          inputVariables:
+                            - name: flagName
+                              type: String
+                              value: <+pipeline.variables.flagName>
+                            - name: workspace
+                              type: String
+                              value: <+pipeline.variables.Workspace>
+          tags: {}
+          when:
+            pipelineStatus: Success
+    variables:
+      - name: Workspace
+        type: String
+        description: ""
+        required: true
+        value: 4baf0690-6d25-11e9-8497-12a5cc2af8fe
+      - name: Environment
+        type: String
+        description: ""
+        required: true
+        value: 4bc2b5a0-6d25-11e9-8497-12a5cc2af8fe
+      - name: flagName
+        type: String
+        description: Name of Feature Flag to run pipeline on
+        required: true
+        value: <+input>.regex(^[a-zA-Z][a-zA-Z0-9_]{0,254}$)
+      - name: DeployStyle
+        type: String
+        description: Deployment Style
+        required: true
+        value: <+input>.allowedValues(multivariate,boolean)
+      - name: trafficType
+        type: String
+        description: Traffic Type of Feature Flag
+        required: true
+        value: user
+      - name: Organization
+        type: String
+        description: Split Organization
+        required: true
+        value: 4ba7daa0-6d25-11e9-8497-12a5cc2af8fe
+      - name: variant1
+        type: String
+        description: ""
+        required: true
+        value: current
+      - name: variant2
+        type: String
+        description: ""
+        required: true
+        value: standard
+      - name: variant3
+        type: String
+        description: ""
+        required: true
+        value: premium
+      - name: on_variant
+        type: String
+        description: ""
+        required: false
+        value: standard
+      - name: off_variant
+        type: String
+        description: ""
+        required: true
+        value: current
+    allowStageExecutions: true
+  versionLabel: Version1
+  identifier: Full_Flag_Lifecycle_Pipeline
