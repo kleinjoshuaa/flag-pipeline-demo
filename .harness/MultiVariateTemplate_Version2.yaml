@@ -16,37 +16,46 @@ template:
           value: application/json
       inputVariables:
         - name: workspace
-          value: <+pipeline.variables.Workspace>
+          value: <+input>
           type: String
         - name: environment
-          value: <+pipeline.variables.Environment>
+          value: <+input>
           type: String
         - name: flagName
-          value: <+pipeline.variables.flagName>
+          value: <+input>
           type: String
-        - name: currentPct
-          value: <+stage.variables.currentPct>
+        - name: variant1Pct
+          value: <+input>
           type: String
-        - name: standardPct
-          value: <+stage.variables.standardPct>
+        - name: variant2Pct
+          value: <+input>
           type: String
-        - name: premiumPct
-          value: <+stage.variables.premiumPct>
+        - name: variant3Pct
+          value: <+input>
+          type: String
+        - name: variant1
+          value: <+input>
+          type: String
+        - name: variant2
+          value: <+input>
+          type: String
+        - name: variant3
+          value: <+input>
           type: String
       outputVariables: []
       requestBody: |-
         [{"op": "replace", "path": "/defaultRule", "value":[
            {
-             "treatment": "current",
-             "size": <+spec.inputVariables.currentPct>
+             "treatment": "<+spec.inputVariables.variant1>",
+             "size": <+spec.inputVariables.variant1Pct>
            },
            {
-            "treatment": "standard",
-            "size": <+spec.inputVariables.standardPct>
+            "treatment": "<+spec.inputVariables.variant2>",
+            "size": <+spec.inputVariables.variant2Pct>
            },
             {
-            "treatment": "premium",
-            "size": <+spec.inputVariables.premiumPct>
+            "treatment": "<+spec.inputVariables.variant3>",
+            "size": <+spec.inputVariables.variant3Pct>
            }
            ] }]
       delegateSelectors:
