@@ -4,14 +4,23 @@ template:
   spec:
     type: Http
     spec:
-      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/<+pipeline.variables.flagName>/environments/<+pipeline.variables.Environment>
+      url: https://api.split.io/internal/api/v2/splits/ws/<+spec.inputVariables.workspace>/<+spec.inputVariables.flagName>/environments/<+spec.inputVariables.environment>
       method: DELETE
       headers:
         - key: Content-Type
           value: application/json
         - key: Authorization
           value: Bearer <+secrets.getValue("splitApiKey")>
-      inputVariables: []
+      inputVariables:
+        - name: workspace
+          value: <+pipeline.variables.Workspace>
+          type: String
+        - name: flagName
+          value: <+pipeline.variables.flagName>
+          type: String
+        - name: environment
+          value: <+pipeline.variables.Environment>
+          type: String
       outputVariables: []
       assertion: <+httpResponseCode>==200
     timeout: 10s
