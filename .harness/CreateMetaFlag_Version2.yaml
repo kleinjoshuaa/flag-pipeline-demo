@@ -4,19 +4,31 @@ template:
   spec:
     type: Http
     spec:
-      url: https://api.split.io/internal/api/v2/splits/ws/<+pipeline.variables.Workspace>/trafficTypes/<+pipeline.variables.trafficType>
+      url: https://api.split.io/internal/api/v2/splits/ws/<+spec.inputVariables.workspace>/trafficTypes/<+spec.inputVariables.trafficType>
       method: POST
       headers:
         - key: Content-Type
           value: application/json
         - key: Authorization
           value: Bearer <+secrets.getValue("splitApiKey")>
-      inputVariables: []
+      inputVariables:
+        - name: workspace
+          value: <+pipeline.variables.Workspace>
+          type: String
+        - name: trafficType
+          value: <+pipeline.variables.trafficType>
+          type: String
+        - name: flagName
+          value: <+pipeline.variables.flagName>
+          type: String
+        - name: flagDesc
+          value: <+pipeline.variables.flagName>
+          type: String
       outputVariables:
         - name: flagId
           value: <+json.select("id", httpResponseBody)>
           type: String
-      requestBody: "{\"name\": \"<+pipeline.variables.flagName>\",\"description\": \"<+pipeline.variables.flagName>\"}"
+      requestBody: "{\"name\": \"<+spec.inputVariables.flagName>\",\"description\": \"<+pipeline.variables.flagDesc>\"}"
       assertion: <+httpResponseCode>==200
     timeout: 10s
   versionLabel: Version2
