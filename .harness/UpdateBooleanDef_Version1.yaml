@@ -13,30 +13,36 @@ template:
           value: Bearer <+secrets.getValue("splitApiKey")>
       inputVariables:
         - name: workspace
-          value: <+pipeline.variables.Workspace>
+          value: <+input>
           type: String
         - name: flagName
-          value: <+pipeline.variables.flagName>
+          value: <+input>
           type: String
         - name: environment
-          value: <+pipeline.variables.Environment>
+          value: <+input>
           type: String
-        - name: standardPct
-          value: <+stage.variables.standardPct>
+        - name: on_variant
+          value: <+input>
           type: String
-        - name: currentPct
-          value: <+stage.variables.currentPct>
+        - name: off_variant
+          value: <+input>
+          type: String
+        - name: on_pct
+          value: <+input>
+          type: String
+        - name: off_pct
+          value: <+input>
           type: String
       outputVariables: []
       requestBody: |-
         [{"op": "replace", "path": "/defaultRule", "value":[
                    {
-                     "treatment": "current",
-                     "size": <+spec.inputVariables.currentPct>
+                     "treatment": "<+spec.inputVariables.off_variant>",
+                     "size": <+spec.inputVariables.off_pct>
                    },
                    {
-                    "treatment": "standard",
-                    "size": <+spec.inputVariables.standardPct>
+                    "treatment": "<+spec.inputVariables.on_variant>",
+                    "size": <+spec.inputVariables.on_pct>
                    }
                    ] }]
       assertion: <+httpResponseCode>==200
