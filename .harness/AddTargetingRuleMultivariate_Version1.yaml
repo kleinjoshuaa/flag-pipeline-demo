@@ -4,7 +4,7 @@ template:
   spec:
     type: Http
     spec:
-      url: https://api.split.io/internal/api/v2/splits/ws/<+spec.inputVariables.workspace>/<+spec.inputVariables.flagName>/environments/<+spec.inputVariables.Environment>
+      url: https://api.split.io/internal/api/v2/splits/ws/<+spec.inputVariables.workspace>/<+spec.inputVariables.flagName>/environments/<+spec.inputVariables.environment>
       method: PATCH
       headers:
         - key: Content-Type
