@@ -28,7 +28,7 @@ template:
         - name: flagId
           value: <+json.select("id", httpResponseBody)>
           type: String
-      requestBody: "{\"name\": \"<+spec.inputVariables.flagName>\",\"description\": \"<+pipeline.variables.flagDesc>\"}"
+      requestBody: "{\"name\": \"<+spec.inputVariables.flagName>\",\"description\": \"<+spec.inputVariables.flagDesc>\"}"
       assertion: <+httpResponseCode>==200
     timeout: 10s
   identifier: CreateMetaFlag
